@@ -11,7 +11,11 @@
 #include "ftxui/component/component_options.hpp"  // for InputOption
 #include "ftxui/component/screen_interactive.hpp"  // for Component, ScreenInteractive
 #include "ftxui/dom/elements.hpp"  // for text, hbox, separator, Element, operator|, vbox, border
+//#include <ftxui/dom/elements.hpp>  // for color, Fit, LIGHT, align_right, bold, DOUBLE
+#include <ftxui/dom/table.hpp>      // for Table, TableSelection
 #include "ftxui/util/ref.hpp"  // for Ref
+#include "ftxui/dom/node.hpp"  // for Render
+#include "ftxui/screen/color.hpp"  // for Color, Color::Blue, Color::Cyan, Color::White, ftxui
 
 using namespace ftxui;
 
@@ -27,6 +31,7 @@ Component Wrap(std::string name, Component component) {
   });
 }
 
+//vertical wrapper with components under the name.
 Component vWrap(std::string name, Component component) {
   return Renderer(component, [name, component] {
     return vbox({
@@ -95,7 +100,7 @@ int main(void) {
                 deviceNameInputComp,
                 deviceFileInputComp,
                 mapFileInputComp,
-                loadButton,
+                loadButton | size(WIDTH, EQUAL, 10),
                 })) | border
 
                 });
@@ -118,9 +123,6 @@ int main(void) {
 
     bool checkbox_autoselectPrevReg_selected = false;
     bool checkbox_sortModReg_selected = false;
-
-    //auto text1 = text("asdf");
-    //auto text2 = text("¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿");
 
     auto collapseAllButton = Button("Collapse All", [&]{collapseAllOperation();});//, Style() );
     auto expandAllButton = Button("Expand All", [&]{expandAllOperation();});//, Style() );
@@ -147,11 +149,48 @@ int main(void) {
     Component registerAddressInputComp = vWrap("Register address",Input(&registerAddressStr, "0"));
     Component numElementsInputComp = vWrap("Number of elements",Input(&numElementsStr, "1024"));
 
-    auto regProps = vWrap("Register Properties\n",Container::Vertical({
+    // Table	(	std::vector< std::vector< std::string >> 	input	)	
+    // Table	(	std::vector< std::vector< Element >> 	input	)
+    // Element(node)
+    //  Element(e)
+    std::vector<std::string> row1 = {"one", "1"};
+    std::vector<std::string> row2 = {"two", "2"};
+    std::vector<std::string> row3 = {"three", "3"};
+    std::vector<std::vector<std::string>> rows = {row1, row2, row3};
+    auto table = Table(rows);
+
+    table.SelectAll().Border(LIGHT);
+
+    // Add border around the first column.
+    table.SelectColumn(0).Border(LIGHT);
+
+    // Make first row bold with a double border.
+    table.SelectRow(0).Decorate(bold);
+    table.SelectRow(0).SeparatorVertical(LIGHT);
+    table.SelectRow(0).Border(DOUBLE);
+
+    // Align right the "Release date" column.
+    table.SelectColumn(2).DecorateCells(align_right);
+
+    // Select row from the second to the last.
+    auto content = table.SelectRows(1, -1);
+    // Alternate in between 3 colors.
+    content.DecorateCellsAlternateRow(color(Color::Blue), 3, 0);
+    content.DecorateCellsAlternateRow(color(Color::Cyan), 3, 1);
+    content.DecorateCellsAlternateRow(color(Color::White), 3, 2);
+
+    std::vector<Component> regPropComps;
+    regPropComps.push_back(registerBarInputComp);
+    regPropComps.push_back(registerAddressInputComp);
+    regPropComps.push_back(numElementsInputComp);
+    //regPropComps.push_back(table);
+    auto regProps = vWrap("Register Properties\n",Container::Vertical(regPropComps));
+    /*auto regProps = vWrap("Register Properties\n",Container::Vertical({
             registerBarInputComp,
             registerAddressInputComp,
             numElementsInputComp,
-            }));
+            table
+            }));*/
 
     //--4th pannel: Options--------------------------------------------------------------------------------------------
     bool checkbox_ContRead_enable = false;
@@ -159,14 +198,14 @@ int main(void) {
     bool checkbox1_showPlotWin_selected = false;
 
     //std::string quitButtonLabel = "Quit"; 
-    auto quitButton = Button("Quit", screen.ExitLoopClosure());
+    auto quitButton = Button("Quit", screen.ExitLoopClosure(), ButtonOption::Simple());
 
     //auto text1 = text("asdf");
     //auto text2 = text("¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿");
     auto checkboxes = Container::Vertical({
             Checkbox("Read After Write", &checkbox_readAftWrite_selected),
             Checkbox("Show Plot Window", &checkbox1_showPlotWin_selected),
-            quitButton   //paragraph("asdf")
+            quitButton | size(WIDTH, EQUAL, 10) | center  //paragraph("asdf")
             });
     checkboxes = vWrap("Options",checkboxes) | border;
 
@@ -183,14 +222,16 @@ int main(void) {
           return hbox({
                   //text("hello world"), //that works, but messes it all up 
                   devicePropsComp->Render(),
-                  separator(),
+                  separatorHeavy(),
                   regVbox->Render(),
-                  separator(),
+                  separatorHeavy(),
                   regProps->Render(),
-                  separator(),
+                  separatorHeavy(),
                   checkboxes->Render()
                   })  |
-           xflex | size(WIDTH, GREATER_THAN, 100) | border;
+           xflex | size(WIDTH, GREATER_THAN, 100) | border | color(Color::RGB(214,210,221) ) | bgcolor(Color::RGB(47,22,25) );
+           //xflex | size(WIDTH, GREATER_THAN, 100) | border | color(Color::RGB(250,251,252) ) | bgcolor(Color::RGB(39,40,24) );
+           
           });
 
   screen.Loop(ui);
@@ -230,34 +271,15 @@ int main(void) {
 @| (__| ' \| | '  \/ -_) '_/ _` || | | ' < @
 @ \___|_||_|_|_|_|_\___|_| \__,_||_| |_|\_\@
                                            
-
-
 .-. . . .-. .  . .-. .-. .-. .-. . . 
 |   |-|  |  |\/| |-  |(  |-|  |  |<  
 `-' ' ` `-' '  ` `-' ' ' ` '  '  ' ` 
-                                     
-
  __                  ___   
 /  |_  o __  _  __ _  | |/ 
 \__| | | |||(/_ | (_| | |\ 
                            
-
   _            ____
  / )/ '_  _ _ _ /  /__/
 (__/)///)(-/ (/(  /  )
-
-
-
-
-
-
-                           
-                           
-                                     
-                                     
-                                     
-                                     
-                    
-
  */
 
